@@ -52,10 +52,18 @@ func main() {
 	if err != nil {
 		fmt.Println("Can't create CSR.")
 	}
-	pem.Encode(csrOut, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr})
 
-	keyOut, _ := os.OpenFile("out.key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+	if err := pem.Encode(csrOut, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr}); err != nil {
+		fmt.Println("PEM error for CSR.")
+	}
+
+	keyOut, err := os.OpenFile("out.key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		fmt.Println("Can't write Key file.")
+	}
 	defer keyOut.Close()
 
+	if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
+		fmt.Println("PEM error for Key.")
+	}
 }
