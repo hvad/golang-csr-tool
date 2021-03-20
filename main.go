@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"fmt"
 	"os"
 )
 
@@ -41,10 +42,17 @@ func main() {
 		SignatureAlgorithm: x509.SHA256WithRSA,
 	}
 
-	csrOut, _ := os.OpenFile("out.csr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	csr, _ := x509.CreateCertificateRequest(rand.Reader, &template, priv)
-	pem.Encode(csrOut, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr})
+	csrOut, err := os.OpenFile("out.csr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		fmt.Println("Can't write CSR file.")
+	}
 	defer csrOut.Close()
+
+	csr, err := x509.CreateCertificateRequest(rand.Reader, &template, priv)
+	if err != nil {
+		fmt.Println("Can't create CSR.")
+	}
+	pem.Encode(csrOut, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr})
 
 	keyOut, _ := os.OpenFile("out.key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
