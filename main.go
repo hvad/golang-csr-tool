@@ -15,8 +15,20 @@ var oidEmailAddress = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}
 
 func main() {
 
+	// Create private key
 	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
 
+	keyOut, err := os.OpenFile("out.key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		fmt.Println("Can't write Key file.")
+	}
+	defer keyOut.Close()
+
+	if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
+		fmt.Println("PEM error for Key.")
+	}
+
+	// Create template for CSR
 	emailAddress := "email@example.com"
 
 	subj := pkix.Name{
@@ -42,6 +54,7 @@ func main() {
 		SignatureAlgorithm: x509.SHA256WithRSA,
 	}
 
+	// Create CSR
 	csrOut, err := os.OpenFile("out.csr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		fmt.Println("Can't write CSR file.")
@@ -57,13 +70,4 @@ func main() {
 		fmt.Println("PEM error for CSR.")
 	}
 
-	keyOut, err := os.OpenFile("out.key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		fmt.Println("Can't write Key file.")
-	}
-	defer keyOut.Close()
-
-	if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
-		fmt.Println("PEM error for Key.")
-	}
 }
