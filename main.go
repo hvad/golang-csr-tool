@@ -7,16 +7,49 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 var oidEmailAddress = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}
 
+type Infile struct {
+	EMail   string `yaml:"EMail"`
+	CName   string `yaml:"CName"`
+	COuntry string `yaml:"COuntry"`
+	STate   string `yaml:"STate"`
+	CIty    string `yaml:"CIty"`
+	O       string `yaml:"O"`
+	OU      string `yaml:"OU"`
+}
+
 func main() {
 
+	var infile Infile
+
+	DefaultInFile := "~/list.yml"
+	File := flag.String("f", DefaultInFile, fmt.Sprintf("Path for file, default = %s", DefaultInFile))
+	flag.Parse()
+
+	F, err := ioutil.ReadFile(*File)
+	if err != nil {
+		fmt.Println("Error to get file.")
+	}
+
+	err = yaml.Unmarshal(F, &infile)
+	if err != nil {
+		fmt.Println("YAML error.")
+	}
+
 	// Create private key
-	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		fmt.Println("Can't generate Key.")
+	}
 
 	keyOut, err := os.OpenFile("out.key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -29,15 +62,15 @@ func main() {
 	}
 
 	// Create template for CSR
-	emailAddress := "email@example.com"
+	emailAddress := infile.EMail
 
 	subj := pkix.Name{
-		CommonName:         "example.com",
-		Country:            []string{"FR"},
-		Province:           []string{"Some-State"},
-		Locality:           []string{"City"},
-		Organization:       []string{"Company LTD"},
-		OrganizationalUnit: []string{"IT"},
+		CommonName:         infile.CName,
+		Country:            []string{infile.COuntry},
+		Province:           []string{infile.STate},
+		Locality:           []string{infile.CIty},
+		Organization:       []string{infile.O},
+		OrganizationalUnit: []string{infile.OU},
 		ExtraNames: []pkix.AttributeTypeAndValue{
 			{
 				Type: oidEmailAddress,
