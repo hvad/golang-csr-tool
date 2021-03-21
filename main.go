@@ -31,7 +31,7 @@ func main() {
 
 	var infile Infile
 
-	DefaultInFile := "~/list.yml"
+	DefaultInFile := "~/file.yml"
 	File := flag.String("f", DefaultInFile, fmt.Sprintf("Path for file, default = %s", DefaultInFile))
 	flag.Parse()
 
