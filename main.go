@@ -18,6 +18,7 @@ import (
 var oidEmailAddress = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}
 
 type Infile struct {
+	Host    string `yaml:"Host"`
 	EMail   string `yaml:"EMail"`
 	CName   string `yaml:"CName"`
 	COuntry string `yaml:"COuntry"`
@@ -37,8 +38,9 @@ func main() {
 	OutputDir := flag.String("o", DefaultOutputDir, fmt.Sprintf("Output directory, default = %s", DefaultOutputDir))
 	flag.Parse()
 
-	if _, err := os.Stat(OutputDir); os.IsNotExist(err) {
-		os.Mkdir(OutputDir, 0755)
+	if err := os.Mkdir(*OutputDir, 0755); err != nil && !os.IsExist(err) {
+		fmt.Println("Error to create directory.")
+
 	}
 
 	F, err := ioutil.ReadFile(*File)
