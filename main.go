@@ -32,8 +32,14 @@ func main() {
 	var infile Infile
 
 	DefaultInFile := "~/file.yml"
+	DefaultOutputDir := "/tmp/pki"
 	File := flag.String("f", DefaultInFile, fmt.Sprintf("Path for file, default = %s", DefaultInFile))
+	OutputDir := flag.String("o", DefaultOutputDir, fmt.Sprintf("Output directory, default = %s", DefaultOutputDir))
 	flag.Parse()
+
+	if _, err := os.Stat(OutputDir); os.IsNotExist(err) {
+		os.Mkdir(OutputDir, 0755)
+	}
 
 	F, err := ioutil.ReadFile(*File)
 	if err != nil {
