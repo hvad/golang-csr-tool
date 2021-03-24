@@ -18,6 +18,7 @@ import (
 var oidEmailAddress = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}
 
 type Infile struct {
+	Host    string `yaml:"Host"`
 	EMail   string `yaml:"EMail"`
 	CName   string `yaml:"CName"`
 	COuntry string `yaml:"COuntry"`
