@@ -33,8 +33,16 @@ func main() {
 	var infile Infile
 
 	DefaultInFile := "~/file.yml"
+	DefaultOutputDir := "/tmp/pki"
 	File := flag.String("f", DefaultInFile, fmt.Sprintf("Path for file, default = %s", DefaultInFile))
+	OutputDir := flag.String("o", DefaultOutputDir, fmt.Sprintf("Output directory, default = %s", DefaultOutputDir))
 	flag.Parse()
+
+	// Create directory if not exist. Defeult is /tmp/pki
+	if err := os.Mkdir(*OutputDir, 0755); err != nil && !os.IsExist(err) {
+		fmt.Println("Error to create directory.")
+
+	}
 
 	F, err := ioutil.ReadFile(*File)
 	if err != nil {
@@ -52,7 +60,9 @@ func main() {
 		fmt.Println("Can't generate Key.")
 	}
 
-	keyOut, err := os.OpenFile("out.key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	var outKey = infile.Host + ".key"
+
+	keyOut, err := os.OpenFile(outKey, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		fmt.Println("Can't write Key file.")
 	}
@@ -89,7 +99,8 @@ func main() {
 	}
 
 	// Create CSR
-	csrOut, err := os.OpenFile("out.csr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	var outCSR = infile.Host + ".csr"
+	csrOut, err := os.OpenFile(outCSR, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		fmt.Println("Can't write CSR file.")
 	}
