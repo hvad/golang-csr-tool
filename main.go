@@ -29,7 +29,6 @@ type Infile struct {
 }
 
 func main() {
-
 	var infile Infile
 
 	DefaultInFile := "~/file.yml"
@@ -39,42 +38,36 @@ func main() {
 	flag.Parse()
 
 	// Create directory if not exist.
-	if err := os.Mkdir(*OutputDir, 0755); err != nil && !os.IsExist(err) {
-		fmt.Println("Error to create directory.")
-
+	if err := os.MkdirAll(*OutputDir, 0755); err != nil {
+		fmt.Println("Error creating directory:", err)
+		return
 	}
 
+	// Read and unmarshal YAML file
 	F, err := ioutil.ReadFile(*File)
 	if err != nil {
-		fmt.Println("Error to get file.")
+		fmt.Println("Error reading file:", err)
+		return
 	}
 
-	err = yaml.Unmarshal(F, &infile)
-	if err != nil {
-		fmt.Println("YAML error.")
+	if err = yaml.Unmarshal(F, &infile); err != nil {
+		fmt.Println("YAML unmarshal error:", err)
+		return
 	}
 
 	// Create private key
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		fmt.Println("Can't generate Key.")
+		fmt.Println("Error generating key:", err)
+		return
 	}
 
-	var outKey = *OutputDir + infile.Host + ".key"
-
-	keyOut, err := os.OpenFile(outKey, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		fmt.Println("Can't write Key file.")
-	}
-	defer keyOut.Close()
-
-	if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
-		fmt.Println("PEM error for Key.")
+	if err = writePEMFile(*OutputDir+infile.Host+".key", "RSA PRIVATE KEY", x509.MarshalPKCS1PrivateKey(priv)); err != nil {
+		fmt.Println("Error writing key file:", err)
+		return
 	}
 
-	// Create template for CSR
-	emailAddress := infile.EMail
-
+	// Create CSR
 	subj := pkix.Name{
 		CommonName:         infile.CName,
 		Country:            []string{infile.COuntry},
@@ -87,32 +80,34 @@ func main() {
 				Type: oidEmailAddress,
 				Value: asn1.RawValue{
 					Tag:   asn1.TagIA5String,
-					Bytes: []byte(emailAddress),
+					Bytes: []byte(infile.EMail),
 				},
 			},
 		},
 	}
 
-	template := x509.CertificateRequest{
+	csr, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
 		Subject:            subj,
 		SignatureAlgorithm: x509.SHA256WithRSA,
-	}
-
-	// Create CSR
-	var outCSR = *OutputDir + infile.Host + ".csr"
-	csrOut, err := os.OpenFile(outCSR, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	}, priv)
 	if err != nil {
-		fmt.Println("Can't write CSR file.")
+		fmt.Println("Error creating CSR:", err)
+		return
 	}
-	defer csrOut.Close()
 
-	csr, err := x509.CreateCertificateRequest(rand.Reader, &template, priv)
+	if err = writePEMFile(*OutputDir+infile.Host+".csr", "CERTIFICATE REQUEST", csr); err != nil {
+		fmt.Println("Error writing CSR file:", err)
+		return
+	}
+}
+
+// writePEMFile writes a PEM encoded file with the given type and bytes.
+func writePEMFile(filename, pemType string, bytes []byte) error {
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		fmt.Println("Can't create CSR.")
+		return err
 	}
+	defer file.Close()
 
-	if err := pem.Encode(csrOut, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr}); err != nil {
-		fmt.Println("PEM error for CSR.")
-	}
-
+	return pem.Encode(file, &pem.Block{Type: pemType, Bytes: bytes})
 }
